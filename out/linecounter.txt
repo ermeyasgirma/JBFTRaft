@@ -1,0 +1,39 @@
+===============================================================================
+EXTENSION NAME : linecounter
+EXTENSION VERSION : 0.2.7
+-------------------------------------------------------------------------------
+count time : 2024-03-15 09:58:47
+count workspace : /Users/egirma/Documents/GitHub/JBFTRaft
+total files : 20
+total code lines : 913
+total comment lines : 64
+total blank lines : 206
+
+    statistics
+   |      extension|     total code|  total comment|    total blank|percent|
+   -------------------------------------------------------------------------
+   |          .java|            693|             61|            159|     76|
+   |            .md|              1|              0|              0|   0.11|
+   |               |            219|              3|             47|     24|
+   -------------------------------------------------------------------------
+LICENSE, code is 219, comment is 3, blank is 47.
+README.md, code is 1, comment is 0, blank is 0.
+src/Client.java, code is 4, comment is 0, blank is 2.
+src/IBroadcastAlg.java, code is 2, comment is 0, blank is 1.
+src/main/JBFTRaft.java, code is 13, comment is 11, blank is 8.
+src/main/LogItem.java, code is 15, comment is 0, blank is 4.
+src/main/Node.java, code is 268, comment is 49, blank is 61.
+src/main/Server.java, code is 208, comment is 0, blank is 25.
+src/main/State.java, code is 4, comment is 0, blank is 0.
+src/main/StoredVariable.java, code is 4, comment is 0, blank is 0.
+src/messages/BroadcastRequest.java, code is 15, comment is 0, blank is 5.
+src/messages/ConnectionRequest.java, code is 11, comment is 0, blank is 4.
+src/messages/HeartBeat.java, code is 16, comment is 0, blank is 5.
+src/messages/LogRequest.java, code is 38, comment is 0, blank is 12.
+src/messages/LogResponse.java, code is 26, comment is 0, blank is 7.
+src/messages/Message.java, code is 9, comment is 0, blank is 6.
+src/messages/ReplicateLog.java, code is 11, comment is 0, blank is 3.
+src/messages/VoteRequest.java, code is 26, comment is 1, blank is 8.
+src/messages/VoteResponse.java, code is 21, comment is 0, blank is 7.
+src/NodeController.java, code is 2, comment is 0, blank is 1.
+===============================================================================

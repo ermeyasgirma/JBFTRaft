@@ -1,0 +1,154 @@
+{
+    "extension": "linecounter",
+    "version": "0.2.7",
+    "workspace": "/Users/egirma/Documents/GitHub/JBFTRaft",
+    "linecount": [
+        {
+            "version": "0.2.7",
+            "counttime": "2024-03-15 09:58:47",
+            "filesum": 20,
+            "codesum": 913,
+            "commentsum": 64,
+            "blanksum": 206,
+            "statistics": {
+                ".java": {
+                    "code": 693,
+                    "comment": 61,
+                    "blank": 159
+                },
+                ".md": {
+                    "code": 1,
+                    "comment": 0,
+                    "blank": 0
+                },
+                "": {
+                    "code": 219,
+                    "comment": 3,
+                    "blank": 47
+                }
+            },
+            "filelist": [
+                {
+                    "blank": 47,
+                    "code": 219,
+                    "comment": 3,
+                    "filename": "LICENSE"
+                },
+                {
+                    "blank": 0,
+                    "code": 1,
+                    "comment": 0,
+                    "filename": "README.md"
+                },
+                {
+                    "blank": 2,
+                    "code": 4,
+                    "comment": 0,
+                    "filename": "src/Client.java"
+                },
+                {
+                    "blank": 1,
+                    "code": 2,
+                    "comment": 0,
+                    "filename": "src/IBroadcastAlg.java"
+                },
+                {
+                    "blank": 8,
+                    "code": 13,
+                    "comment": 11,
+                    "filename": "src/main/JBFTRaft.java"
+                },
+                {
+                    "blank": 4,
+                    "code": 15,
+                    "comment": 0,
+                    "filename": "src/main/LogItem.java"
+                },
+                {
+                    "blank": 61,
+                    "code": 268,
+                    "comment": 49,
+                    "filename": "src/main/Node.java"
+                },
+                {
+                    "blank": 25,
+                    "code": 208,
+                    "comment": 0,
+                    "filename": "src/main/Server.java"
+                },
+                {
+                    "blank": 0,
+                    "code": 4,
+                    "comment": 0,
+                    "filename": "src/main/State.java"
+                },
+                {
+                    "blank": 0,
+                    "code": 4,
+                    "comment": 0,
+                    "filename": "src/main/StoredVariable.java"
+                },
+                {
+                    "blank": 5,
+                    "code": 15,
+                    "comment": 0,
+                    "filename": "src/messages/BroadcastRequest.java"
+                },
+                {
+                    "blank": 4,
+                    "code": 11,
+                    "comment": 0,
+                    "filename": "src/messages/ConnectionRequest.java"
+                },
+                {
+                    "blank": 5,
+                    "code": 16,
+                    "comment": 0,
+                    "filename": "src/messages/HeartBeat.java"
+                },
+                {
+                    "blank": 12,
+                    "code": 38,
+                    "comment": 0,
+                    "filename": "src/messages/LogRequest.java"
+                },
+                {
+                    "blank": 7,
+                    "code": 26,
+                    "comment": 0,
+                    "filename": "src/messages/LogResponse.java"
+                },
+                {
+                    "blank": 6,
+                    "code": 9,
+                    "comment": 0,
+                    "filename": "src/messages/Message.java"
+                },
+                {
+                    "blank": 3,
+                    "code": 11,
+                    "comment": 0,
+                    "filename": "src/messages/ReplicateLog.java"
+                },
+                {
+                    "blank": 8,
+                    "code": 26,
+                    "comment": 1,
+                    "filename": "src/messages/VoteRequest.java"
+                },
+                {
+                    "blank": 7,
+                    "code": 21,
+                    "comment": 0,
+                    "filename": "src/messages/VoteResponse.java"
+                },
+                {
+                    "blank": 1,
+                    "code": 2,
+                    "comment": 0,
+                    "filename": "src/NodeController.java"
+                }
+            ]
+        }
+    ]
+}
