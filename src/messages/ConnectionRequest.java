@@ -1,6 +1,10 @@
 package messages;
 import java.io.Serializable;
 
+/**
+ * The Connection Request class is sent by a node after crash recovery to request other nodes to reconnect to it.
+ */
+
 public class ConnectionRequest implements Serializable {
 
     private int nodeID;

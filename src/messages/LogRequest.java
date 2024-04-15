@@ -5,6 +5,11 @@ import java.util.List;
 
 import main.LogItem;
 
+/**
+ * The LogRequest class is used by the leader to periodically ask follower nodes to update their log entries to 
+ * match the leader's.
+ */
+
 public class LogRequest implements Serializable {
 
     private int leaderID;

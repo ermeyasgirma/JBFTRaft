@@ -1,30 +1,31 @@
 package main;
-import java.io.File;
 import java.io.IOException;
-import java.net.*;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import messages.*;
 
-/*  TO DO:
- * 
- *  A: IMPLEMENT PEER TO PEER NETWORK FOR NODES
- *  B: WRITE TO PERSISTENT MEMORY FOR UPDATER METHODS
- * 
- * QUESTION - Should electionTimer be called at a fixedRate? Do I need to check the electionTimer is running before I cancel it
- * 
- * Add log statements for the following events
- * 
- * 1. A new leader is chosen
- * 2. A new election is started
- * 3. etc
+/**
+ * The Node class is used to represent each Raft node in the network. This includes deciding what to do when we receive various messages
+ * from the other nodes in the network. As well as scheduling elections when necessary and performing the relevant 
+ * actions when we are a leader node. The node class also delegates data persistence and network set up to the PreservedData and Server classes
  */
-
 public class Node {
 
+    private final static Logger LOGGER = Logger.getLogger("Node");
+
     PreservedData presData;
-    
-    // following 4 variables for each Raft node have to be stored in stable storage
+    // local copies of preserved variables
     private int currTerm;
     private Integer votedFor;
     private List<LogItem> log;
@@ -40,21 +41,28 @@ public class Node {
 
     private int nodeID;
     boolean hasCrashed = false;
-    private int[] otherNodes;
-    private String localFileName;
-    private Timer electionTimer;
+    private List<Integer> otherNodes;
     private Timer replicateLogTimer = new Timer();
     private Server server;
 
-    /*
-        TO-DO: need to confirm whether or not electiontimer should be restarted each time it is canceled
-     */
+    private int connectionDelay;
+    private HeartBeat lhb;
+    private int lhbPeriod;
+    private boolean crashRecovery;
 
-    /* 
-        TO-DO: change periodicallyreplicatelog timer so we only trigger it once our state changes to leader to save compute power
-    */
+    private Scanner scanner;
+    private ExecutorService nodeThreadPool;
 
-    public Node(int port, int[] otherNodes) {
+    private Set<Integer> aliveNodes;
+
+    public Timer electionTimer;
+    public int electionTimeout;
+
+    public Node(int port, List<Integer> otherNodes) {
+
+        LOGGER.setLevel(Level.INFO);
+
+        this.otherNodes = otherNodes;
         nodeID = port;
 
         // initialise unpreserved variables
@@ -64,95 +72,95 @@ public class Node {
         sentLength = new HashMap<Integer, Integer>();
         ackedLength = new HashMap<Integer, Integer>();
 
+        aliveNodes = new HashSet<>(otherNodes);
+        LOGGER.log(Level.INFO, "Alive nodes: " + aliveNodes);
+        crashRecovery = false;
 
-        this.otherNodes = otherNodes;
-        handleConnections();
+        electionTimer = new Timer();
+        electionTimeout = (int) ((Math.random() * (25000 - 18000)) + 18000);
+
+        connectionDelay = (int) ((Math.random() * (15000 - 10000)) + 10000);
+
+        /* 
+         * The servers wait for some time before they connect to one another so we don't
+         *  we don't want to start sending VoteRequests before the other nodes can actually
+         *  respond, so give them some time to discover one another
+        */
 
         handlePersistentStorage();
 
-        becomeCandidate();
-        long randomTimer =(long) ((Math.random() * (450 - 250)) + 250);
-        replicateLogTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                periodicallyReplicateLog();
-            }
-        }, randomTimer, randomTimer);
+        nodeThreadPool = Executors.newCachedThreadPool();
 
-        Scanner scanner = new Scanner(System.in);
-        Thread userInputThread = new Thread(new Runnable() {
+        nodeThreadPool.execute(() -> handleConnections());
+
+        scanner = new Scanner(System.in);
+        Runnable userInputTask = new Runnable() {
             @Override
             public void run() {
                 while (true) {
-                    onReceivingBroadcastRequest(scanner.nextLine(), port);
+                    String input = scanner.nextLine();
+                    if (input.equals("exit")) {
+                        CloseConnection cc = new CloseConnection(port);
+                        server.broadcastMessageToAllNodes(cc);
+                        server.closeServer();
+                        closeNode();
+                    } else if (input.equals("getlog")) {
+                        System.out.println("Log at node " + Integer.toString(port) + ": " + log);   
+                    } else if (input == "") {
+                        System.out.println("Please enter a non empty input!");
+                    } else {
+                        onReceivingBroadcastRequest(input, port);
+                    }
                 }
             }
-        });
-        userInputThread.start();
+        };
+        nodeThreadPool.execute(userInputTask);
     }
 
     public void handlePersistentStorage() {
-        try {
-            localFileName  = Integer.toString(nodeID) + ".txt";
-            File f = new File(localFileName);
-            boolean hasCrashed = f.createNewFile();
-            if (hasCrashed) {
-                recoverData();
-            } else {
-                initialise();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (PreservedData.fileExists(nodeID)) {
+            crashRecovery = true;
+            recoverData();
+        } else {
+            initialise();
         }
     }
 
     public void initialise() {
-        presData = new PreservedData(0, null, new ArrayList<>(), 0);
-
-        setCurrTerm(0);
-        setVotedFor(null);
-        setLog(new ArrayList<>());
-        setCommitLength(0);
+        presData = new PreservedData();
+        currTerm = 0;
+        votedFor = 0;
+        log = new ArrayList<LogItem>();
+        commitLength = 0;
     }
 
     public void handleConnections() {
-        /* Create a way that when a node is rebooted it sends each node a message to connect to it */
         try {
-            server = new Server(otherNodes, this, nodeID);
+            server = new Server(otherNodes, this, nodeID, connectionDelay, crashRecovery);
             server.run();
-            // now actually connect to the other node's sockets
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "IOException when trying to create server at node " + Integer.toString(nodeID), e);
         }
 
     }
 
-
     // this method retrieves the values of the 4 variables which were preserved in the crash and updates current fields
     public void recoverData() {
-        /* TO-DO */
-    }
-
-    // we trigger this method each time one of the 4 variables are updated
-    private void updateCurrTerm(int c) throws IOException {
-
-    }
-
-    private void updateVotedFor(Integer v) throws IOException {
-
-    }
-
-    private void updateLog(List<LogItem> l) throws IOException {
-
-    }
-
-    private void updateCommitLength(int c) throws IOException {
-
+        presData = PreservedData.restoreState(nodeID);
+        currTerm = presData.getCurrTerm();
+        votedFor = presData.getVotedFor();
+        log = presData.getLog();
+        commitLength = presData.getCommitLength();
     }
 
     // this method is called either when we suspect leader failure or an election timeout
     public void becomeCandidate() {
-        setCurrTerm(currTerm + 1);
+        if (currRole == State.LEADER) {
+            restartElectionTimer();
+            return;
+        }
+        LOGGER.log(Level.WARNING, "Have note received a heartbeat message from the leader within last " + Integer.toString(electionTimeout) + "ms.");
+        setCurrTerm(currTerm+ 1);
         currRole = State.CANDIDATE;
         setVotedFor(nodeID);
         votesReceived.clear();
@@ -164,19 +172,36 @@ public class Node {
         }
         VoteRequest vreq = new VoteRequest(nodeID, currTerm, log.size(), lastTerm);
         
-        for (int node: otherNodes) {
-            server.sendMessageToNode(vreq, node);
-        }
+        LOGGER.log(Level.INFO, "Sending vote request to all nodes. ");
+        server.broadcastMessageToAllNodes(vreq);
 
-        long randomTimer =(long) ((Math.random() * (350 - 150)) + 150);
+        restartElectionTimer();
+    }
+
+    public void beginElectionTimer() {
+        if (!hasCrashed && currLeader == null) {
+            int randomInitialElectionTimeout = (int) ((Math.random() * (25000 - 10000)) + 10000);
+            electionTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    becomeCandidate();
+                }
+            }, randomInitialElectionTimeout);
+        }
+    }
+
+    public void restartElectionTimer() {
+        LOGGER.log(Level.INFO, "Restarting election timer");
+        if (electionTimer != null) {
+            electionTimer.cancel();
+        }
         electionTimer = new Timer();
         electionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 becomeCandidate();
             }
-        }, randomTimer);
-        System.out.println("\n Election Timer started \n");
+        }, electionTimeout);
     }
 
 
@@ -184,26 +209,37 @@ public class Node {
         return currRole;
     }
 
+    public void setCurrLeader(int leader) {
+        currLeader = leader;
+    }
+
+    public Integer getCurrLeader() {
+        return currLeader;
+    }
+
     private void setCurrTerm(int c) {
-        presData.updateCurrTerm(c);
+        presData.updateCurrTerm(c, nodeID);
+        currTerm = c;
     }
 
     private void setVotedFor(Integer v) {
-        presData.updateVotedFor(v);
+        presData.updateVotedFor(v, nodeID);
+        votedFor = v;
     }
 
     private void setLog(List<LogItem> l) {
-        presData.updateLog(l);
+        presData.updateLog(l, nodeID);
+        log = l;
     }
 
     private void appendLog(LogItem li) {
-        presData.getLog().add(li);
-        presData.updateLog(presData.getLog());
+        log.add(li);
+        presData.updateLog(log, nodeID);
     }
 
     private void setCommitLength(int c) {
-        /* TO-DO: Figure out why this method is only called once */
-        presData.updateCommitLength(c);
+        presData.updateCommitLength(c, nodeID);
+        commitLength = c;
     }
 
     /*  when we receive a vote request use the getter methods then pass the variables as parameters to this method
@@ -221,15 +257,16 @@ public class Node {
             lastTerm = log.get(log.size()-1).getTerm();
         }
         boolean logOK = (candidateTerm > lastTerm) | (candidateTerm == lastTerm & logLength >= log.size());
-        VoteResponse vresp;
-        if (candidateTerm == currTerm & logOK & (votedFor == null | votedFor == candidateID)) {
+        VoteResponse vresp = null;
+        if ((candidateTerm == currTerm) && (logOK) && ((votedFor == null) || (votedFor == candidateID))) {
             setVotedFor(candidateID);
             vresp = new VoteResponse(nodeID, currTerm, true); 
 
         } else {
             vresp = new VoteResponse(nodeID, currTerm, false);
         }
-
+        LOGGER.log(Level.FINE, "Node " + Integer.toString(nodeID) + " sending VoteResponse to candidate at port " + Integer.toString(candidateID));
+        LOGGER.log(Level.FINE, vresp.toString());
         server.sendMessageToNode(vresp, candidateID);
     }
 
@@ -238,13 +275,34 @@ public class Node {
     */
     public void onReceivingVoteResponse(int voterID, int term, boolean granted) {
         if (currRole == State.CANDIDATE & term == currTerm & granted) {
+            LOGGER.log(Level.INFO, "Received a vote from node " + Integer.toString(voterID));
             votesReceived.add(voterID);
 
-            if (votesReceived.size() > Math.ceil((otherNodes.length + 1 + 1)/2)) {
+            if (votesReceived.size() > Math.ceil((aliveNodes.size() + 1)/2)) {
+
+                if (currRole != State.LEADER) {LOGGER.log(Level.INFO, "Node " + Integer.toString(nodeID) + " is now the leader");}
+
                 currRole = State.LEADER;
                 currLeader = nodeID;
 
-                electionTimer.cancel();
+                lhbPeriod = (int) ((Math.random() * (15000 - 10000)) + 10000);
+                lhb = new HeartBeat(nodeID, lhbPeriod);
+
+                server.broadcastMessageToAllNodes(lhb);
+                LOGGER.log(Level.INFO, "Sending leader heartbeat messages");
+
+                scheduleLeaderHeartbeatMessages();
+
+                replicateLogTimer.scheduleAtFixedRate(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (!currRole.equals(State.LEADER)) {
+                            replicateLogTimer.cancel();
+                        } else {
+                            periodicallyReplicateLog();
+                        }
+                    }
+                }, 350, lhbPeriod);
 
                 for (int i : otherNodes) {
                     sentLength.put(i, log.size());
@@ -256,8 +314,25 @@ public class Node {
             setCurrTerm(term);
             currRole = State.FOLLOWER;
             setVotedFor(null);
-            electionTimer.cancel();
         }
+    }
+
+    /** 
+     * Testing doc comment
+     * **/
+    public void scheduleLeaderHeartbeatMessages() {
+        Timer lhbScheduler = new Timer();
+        lhbScheduler.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (currRole == State.LEADER) {
+                    server.broadcastMessageToAllNodes(lhb);
+                } else {
+                    lhbScheduler.cancel();
+                }
+            }
+        }, (long) 0, (long) lhbPeriod);
+
     }
 
     public void onReceivingBroadcastRequest(String msg, int requestingNodeID) {
@@ -271,6 +346,8 @@ public class Node {
             }
         } else {
             BroadcastRequest breq = new BroadcastRequest(nodeID, msg);
+            LOGGER.log(Level.FINE, "Forwarding broadcast request to leader at port " + Integer.toString(currLeader));
+            LOGGER.log(Level.FINE, breq.toString());
             server.sendMessageToNode(breq, currLeader);
 
             /*
@@ -286,13 +363,15 @@ public class Node {
             setCurrTerm(term);
             currRole = State.FOLLOWER;
             setVotedFor(null);
-            electionTimer.cancel();
         }
         if (term == currTerm) {
             currRole = State.FOLLOWER;
             currLeader = leaderID;
         }
-        boolean logOK = (log.size() > prefixLen) & (prefixLen == 0 | log.get(prefixLen - 1).getTerm() == prefixTerm);
+        boolean logOK = (log.size() >= prefixLen) & (prefixLen == 0 || log.get(prefixLen - 1).getTerm() == prefixTerm);
+        LOGGER.log(Level.WARNING, "Log response values are " + Integer.toString(log.size()) + ", " + Integer.toString(prefixLen) + ", log is " + log + ", "+ Integer.toString(prefixTerm));
+        LOGGER.log(Level.WARNING, "Term and currTerm are" + Integer.toString(term) + ", " + Integer.toString(currTerm));
+        LOGGER.log(Level.WARNING, "Suffix is of size " + Integer.toString(suffix.size()) + "and value" + suffix);
         LogResponse lresp;
         if (term == currTerm & logOK) {
             appendEntries(prefixLen, leaderCommitLen, suffix);
@@ -301,6 +380,8 @@ public class Node {
         } else {
             lresp = new LogResponse(nodeID, currTerm, 0, false);
         }
+        LOGGER.log(Level.FINE, "Node :" + Integer.toString(nodeID) + " sending LogResponse to leader at port " + Integer.toString(leaderID));
+        LOGGER.log(Level.FINE, lresp.toString());
         server.sendMessageToNode(lresp, leaderID);
     }
 
@@ -309,7 +390,7 @@ public class Node {
             if (granted & ack >= ackedLength.get(followerID)) {
                 sentLength.put(followerID, ack);
                 ackedLength.put(followerID, ack);
-                /* TO-DO: COMMITLOGENTRIES() */
+                commitLogEntries();
             } else if (sentLength.get(followerID) > 0) {
                 sentLength.put(followerID, sentLength.get(followerID) - 1);
                 replicateLog(followerID);
@@ -318,53 +399,106 @@ public class Node {
             setCurrTerm(term);
             currRole = State.FOLLOWER;
             setVotedFor(null);
-            electionTimer.cancel();
         }
     }
 
     // serves as a heartbeat reminder to followers that leader is still alive, and ensures logs are up to date in case of dropped messages
     public void periodicallyReplicateLog() {
-        if (!currRole.equals(State.LEADER)) {return;}
         for (int followerID : otherNodes) {
-            /* TO-DO: send log to node i to be replicated */
             replicateLog(followerID);
         }
     }
 
+
     public void replicateLog(int followerID){
+        if (log.size() == 0) {
+            return;
+        }
         int prefixLen = sentLength.get(followerID);
-        List<LogItem> suffix = log.subList(prefixLen, log.size()-1);
+        LOGGER.log(Level.WARNING, "Prefix length is " + Integer.toString(prefixLen) + " and log size is " + Integer.toString(log.size()));
+        // list returned by sublist() is an instance of 'RandomAccessSubList' which is not serializable. Therefore you need to create a new ArrayList object from the list returned by the subList().
+        List<LogItem> suffix;
+        if (prefixLen == 0 && log.size() <= 1) {
+            suffix = new ArrayList<>();
+            suffix.add(log.get(0));
+        } else if (prefixLen > log.size() - 1) {
+            return;
+        } else if (log.size() - prefixLen == 1) {
+            suffix = new ArrayList<>();
+            suffix.add(log.get(prefixLen));
+        } else {
+            suffix = new ArrayList<>(log.subList(prefixLen, log.size()));
+        }
         int prefixTerm = 0;
         if (prefixLen > 0) {
             prefixTerm = log.get(log.size()-1).getTerm();
         }
         LogRequest lr = new LogRequest(nodeID , currTerm, prefixLen, prefixTerm, commitLength, suffix);
+        LOGGER.log(Level.FINE, "Node :" + Integer.toString(nodeID) + " sending LogRequest to follower at port " + Integer.toString(followerID));
+        LOGGER.log(Level.FINE, lr.toString());
         server.sendMessageToNode(lr, followerID);
     }
 
     public void appendEntries(int prefixLen, int leaderCommitLen, List<LogItem> suffix) {
-        if (suffix.size() > 0 & log.size() > prefixLen) {
+        if (suffix.size() > 0 & log.size() >= prefixLen) {
             int index = Math.min(log.size(), prefixLen + suffix.size()) - 1;
+            if (index < 0) {index = 0;}
+
+            // TODO
             /* 
-                TO-DO: sort out if statement below - no body
-            */
-            if (log.get(index).getTerm() != suffix.get( - prefixLen).getTerm());
-            List<LogItem> truncatedLog = log.subList(0, prefixLen - 1);
-            setLog(truncatedLog);
+            if (log.size() != 0 && log.get(index).getTerm() != suffix.get(index - prefixLen).getTerm()) {
+                List<LogItem> truncatedLog = log.subList(0, prefixLen - 1);
+                setLog(truncatedLog);
+            }*/
         }
 
         if (prefixLen + suffix.size() > log.size()) {
             for (int i = log.size() - prefixLen; i < suffix.size(); i++) {
+                LOGGER.log(Level.INFO, "We append the log value");
                 appendLog(suffix.get(i));
             }
         }
 
         if (leaderCommitLen > commitLength) {
             for (int i = commitLength; i < leaderCommitLen; i++) {
-                System.out.println(log.get(i).getMsg());
+                LOGGER.log(Level.INFO, log.get(i).getMsg());
+                // Can replace print statement with any other method of replicating data, eg storing in a database
             }
-            commitLength = leaderCommitLen;
+
+            setCommitLength(leaderCommitLen);
         }
+    }
+
+    public void commitLogEntries() {
+        int acks;
+        while (commitLength < log.size()) {
+            acks = 0;
+            for (int node : otherNodes) {
+                if (ackedLength.get(node) > commitLength) {
+                    acks += 1;
+                }
+            }
+            if (acks >= Math.ceil((otherNodes.size() + 1)/2)) {
+                LOGGER.log(Level.INFO, log.get(commitLength).getMsg());
+                setCommitLength(commitLength + 1);
+                // Can replace print statement with any other method of data replication
+            } else {
+                break;
+            }
+        }
+    }
+
+    public void removeNodeFromAliveNodes(int portNumber) {
+        aliveNodes.remove(portNumber);
+    }
+
+    public void reAddNodeToAliveNodes(int portNumber) {
+        aliveNodes.add(portNumber);
+    }
+
+    public void closeNode() {
+        scanner.close();
+        nodeThreadPool.shutdown();
     }
 
 

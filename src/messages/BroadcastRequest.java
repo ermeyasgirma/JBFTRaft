@@ -1,5 +1,9 @@
 package messages;
 
+/**
+ * The BroadcastRequest class is used to ask the leader to inform the leader we have received a message from the client
+ * and need to commit this as well as inform all other nodes in the network.
+ */
 public class BroadcastRequest {
 
     private int nodeID;

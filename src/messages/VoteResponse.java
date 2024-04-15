@@ -1,6 +1,10 @@
 package messages;
 import java.io.Serializable;
 
+/**
+ * The class VoteResponse is sent in response to a VoteRequest, and either grants or denies the election candidate the vote.
+ */
+
 public class VoteResponse implements Serializable {
 
     private int nodeID;

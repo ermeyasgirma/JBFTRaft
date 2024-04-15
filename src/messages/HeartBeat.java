@@ -1,6 +1,10 @@
 package messages;
 import java.io.Serializable;
 
+/**
+ * The HeartBeat class is used to send heartbeat reminders to other nodes in the network periodically. If we do not receive
+ * a heartbeat message from each node with in a certain time period we assume they have disconnected or crashed.
+ */
 public class HeartBeat implements Serializable {
 
     private int nodeID;

@@ -1,6 +1,11 @@
 package messages;
 import java.io.Serializable;
 
+/**
+ * The LogResponse class is sent in response to a LogRequest, and the follower either denies or grants the request
+ * to update our log entry.
+ */
+
 public class LogResponse implements Serializable {
 
     private int nodeID;

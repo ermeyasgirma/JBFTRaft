@@ -1,6 +1,11 @@
 package messages;
 import java.io.Serializable;
 
+/**
+ * The VoteRequest class is sent to other nodes in the network after a suspsected leader failure to request a vote and 
+ * trigger an election.
+ */
+
 public class VoteRequest implements Serializable {
     
     private int nodeID;
@@ -14,8 +19,6 @@ public class VoteRequest implements Serializable {
         this.logLength = logLength;
         this.lastTerm = lastTerm;
     }
-
-    /* TO DO: Implement serializability */
 
     public int getNodeID() {
         return nodeID;
