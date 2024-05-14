@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 // TODO: change file path for serialization files
 
 
-public class JBFTRaft {
+public class JRaft {
  
     public static void main(String[] args) throws IOException {
         

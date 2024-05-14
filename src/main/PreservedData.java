@@ -38,7 +38,7 @@ public class PreservedData implements Serializable {
     }
 
     public void saveState(int nodeID) {
-        String fileName = "/Users/egirma/Documents/GitHub/JBFTRaft/src/" + Integer.toString(nodeID) + ".ser";
+        String fileName = Integer.toString(nodeID) + ".ser";
         try {
             FileOutputStream fos = new FileOutputStream(fileName);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
@@ -53,7 +53,7 @@ public class PreservedData implements Serializable {
     public static PreservedData restoreState(int nodeID) {
         PreservedData pd = null;
 
-        String fileName = "/Users/egirma/Documents/GitHub/JBFTRaft/src/" + Integer.toString(nodeID) + ".ser";
+        String fileName = Integer.toString(nodeID) + ".ser";
         try  {
             FileInputStream fis = new FileInputStream(fileName);
             ObjectInputStream ois = new ObjectInputStream(fis);
@@ -69,7 +69,7 @@ public class PreservedData implements Serializable {
     }
 
     public static boolean fileExists(int nodeID) {
-        String fileName = "/Users/egirma/Documents/GitHub/JBFTRaft/src/" + Integer.toString(nodeID) + ".ser";
+        String fileName = Integer.toString(nodeID) + ".ser";
         File f  = new File(fileName);
         return f.isFile();
     }
