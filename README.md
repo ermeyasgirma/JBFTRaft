@@ -1,1 +1,1 @@
-# JBFTRaft
+# JRaft
