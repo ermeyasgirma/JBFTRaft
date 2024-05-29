@@ -53,3 +53,12 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
   Strong Consistency: Ensures that all nodes in the cluster agree on the same state.
 
   Fault Tolerance: Can tolerate the failure of up to half of the nodes in the cluster.
+
+
+# Acknowledgements
+
+  - The original Raft paper by Diego Ongaro and John Ousterhout
+
+  - raft.github.io for providing detailed resources on Raft
+
+  - https://www.youtube.com/watch?v=uXEYuDwm7e4&t=1665s (easy to understand youtube video explaining the algorithm)
