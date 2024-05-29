@@ -1,27 +1,27 @@
 # JRaft
 
-# Overview
+## Overview
 Raft is a consensus algorithm designed to manage a replicated log, ensuring that a cluster of computers can maintain a consistent state even in the presence of failures. It was developed to be more understandable compared to other consensus algorithms like Paxos.
 
-# Getting Started
+## Getting Started
 
-  ## Prerequisites
+  ### Prerequisites
 
     1. java 8 or higher
 
-  ##  Clone the repository
+  ### Clone the repository
 
     $ git clone https://github.com/ermeyasgirma/JRaft.git
 
     $ cd jraft
 
-  ##  Build the project 
+  ###  Build the project 
 
     $ javac main/*.java
 
     $ javac messages/*.java
 
-  ## Run the program
+  ### Run the program
 
     Open as many terminals as you would like there to be nodes in your raft algorithm instance, say n nodes
 
@@ -33,7 +33,7 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
 
           Note: in each terminal a different port should be the first argument (the port for that node), the order of the other nodes does not matter
 
-      ### Interacting with the servers
+      Interacting with the servers
 
           1. To send a message to the node to be stored just enter any non-empty string into the terminal
 
@@ -47,7 +47,7 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
 
               $ exit
 
-# Key Concepts
+## Key Concepts
   1. Cluster of Nodes: Raft manages a cluster of nodes (servers). Each node can be in one of three states: Leader, Follower, or Candidate.
 
   2. Leader Election: One node is elected as the leader. The leader handles all client interactions and log management. The other nodes (followers) replicate the leader’s log       
@@ -57,7 +57,7 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
 
   4. Consistency and Fault Tolerance: Raft ensures that the log is consistent across the cluster. If the leader crashes, a new leader is elected from the followers. The new leader       continues log replication, ensuring that all nodes eventually reach the same state.
 
-# Raft Algorithm Phases
+## Raft Algorithm Phases
   1. Leader Election:
 
      - Each node starts as a follower.
@@ -90,7 +90,7 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
 
      - Raft handles network partitions and ensures that a single, consistent leader is elected.
 
-# Why Raft? 
+## Why Raft? 
 
   Understandability: Raft is designed to be easier to understand compared to other consensus algorithms.
 
@@ -99,7 +99,7 @@ Raft is a consensus algorithm designed to manage a replicated log, ensuring that
   Fault Tolerance: Can tolerate the failure of up to half of the nodes in the cluster.
 
 
-# Acknowledgements
+## Acknowledgements
 
   - The original Raft paper by Diego Ongaro and John Ousterhout
 
