@@ -3,6 +3,50 @@
 # Overview
 Raft is a consensus algorithm designed to manage a replicated log, ensuring that a cluster of computers can maintain a consistent state even in the presence of failures. It was developed to be more understandable compared to other consensus algorithms like Paxos.
 
+# Getting Started
+
+  ## Prerequisites
+
+    1. java 8 or higher
+
+  ##  Clone the repository
+
+    $ git clone https://github.com/ermeyasgirma/JRaft.git
+
+    $ cd jraft
+
+  ##  Build the project 
+
+    $ javac main/*.java
+
+    $ javac messages/*.java
+
+  ## Run the program
+
+    Open as many terminals as you would like there to be nodes in your raft algorithm instance, say n nodes
+
+    Choose n different ports, say m, m+1, ... , m + n - 1
+
+    In each terminal run the following 
+
+      $ java main/JRaft m m+1 ... m + n - 1
+
+          Note: in each terminal a different port should be the first argument (the port for that node), the order of the other nodes does not matter
+
+      ### Interacting with the servers
+
+          1. To send a message to the node to be stored just enter any non-empty string into the terminal
+
+              $ hi
+
+          2. To check if the message has been replicated in other nodes enter "getlog"
+
+              $ getlog
+
+          3. To kill all nodes simply enter "exit" into the terminal
+
+              $ exit
+
 # Key Concepts
   1. Cluster of Nodes: Raft manages a cluster of nodes (servers). Each node can be in one of three states: Leader, Follower, or Candidate.
 
